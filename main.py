@@ -91,18 +91,26 @@ def get_average_fitness(population, genome_size, precision, solution_search_boun
                    population)) / len(population)
 
 
-def plot_graphs(best_individuals_history, std_deviation_history):
+def plot_mutation_probability_and_generations_count_correlation_graph(generations_count_history,
+                                                                      mutation_probabilities):
     fig, ax = plt.subplots()
-    ax.plot(best_individuals_history)
+    ax.plot(mutation_probabilities, generations_count_history)
 
-    ax.set(xlabel='x', ylabel='f(x)')
+    ax.set(xlabel='Mutation probability', ylabel='Number of generations until convergence')
     ax.grid()
 
-    fig2, ax2 = plt.subplots()
-    ax2.plot(std_deviation_history)
+    plt.show()
 
-    ax2.set(xlabel='x', ylabel='f(x)')
-    ax2.grid()
+
+def plot_mutation_probability_and_best_fitness_correlation_graph(best_individual_fitness,
+                                                                 mutation_probabilities):
+    fig, ax = plt.subplots()
+    ax.plot(mutation_probabilities, best_individual_fitness)
+
+    ax.set(xlabel='Mutation probability', ylabel='Best individual fitness')
+    ax.grid()
+
+    plt.show()
 
 
 def print_generation_stats(generation,
@@ -110,11 +118,15 @@ def print_generation_stats(generation,
                            best_individual_fitness,
                            average_fitness,
                            genome_size,
-                           precision):
+                           precision,
+                           mutation_probability,
+                           std_deviation):
     print(
         f"Generation {generation}: "
-        f"Best Individual = {genome_to_real(best_individual, genome_size, precision)},"
-        f"Fitness = {best_individual_fitness},"
+        f"Best Individual = {genome_to_real(best_individual, genome_size, precision)}, "
+        f"Fitness = {best_individual_fitness}, "
+        f"Mutation probability = {mutation_probability}, "
+        f"Standard deviation = {std_deviation}, "
         f"Average = {average_fitness}")
 
 
@@ -124,9 +136,11 @@ def check_termination_criteria(average_history, std_deviation_history, convergen
         std_deviation_history.append(std_deviation)
         if std_deviation < convergence_threshold:
             print(f"Converged: Standard Deviation = {std_deviation}")
-            return True
+            return True, std_deviation
+        else:
+            return False, std_deviation
 
-    return False
+    return False, 0
 
 
 def run_genetic_algorithm(population_size,
@@ -162,27 +176,43 @@ def run_genetic_algorithm(population_size,
         best_individuals_history.append(genome_to_real(best_individual, genome_size, precision))
 
         generation += 1
+        terminate, std_deviation = check_termination_criteria(average_history, std_deviation_history,
+                                                              convergence_threshold)
         print_generation_stats(generation,
                                best_individual,
                                best_individual_fitness,
                                average_fitness,
                                genome_size,
-                               precision)
+                               precision,
+                               mutation_probability,
+                               std_deviation)
 
-        if check_termination_criteria(average_history, std_deviation_history, convergence_threshold):
+        if terminate:
             break
 
-    plot_graphs(best_individuals_history, std_deviation_history)
+    return generation, genome_to_real(best_individual, genome_size, precision), best_individual_fitness
 
 
 if __name__ == "__main__":
-    run_genetic_algorithm(
-        population_size=100,
-        tournament_size=3,
-        mutation_probability=0.01,
-        parenthood_probability=0.7,
-        precision=0.001,
-        convergence_threshold=0.001,
-        genome_size=14,
-        solution_search_boundaries_predicate=lambda x: (-5 <= x < 0) or (0 < x <= 5)
-    )
+
+    mutation_probabilities = np.arange(0.01, 0.21, 0.01)
+    results = []
+    for mp in mutation_probabilities:
+        results.append(run_genetic_algorithm(
+            population_size=1000,
+            tournament_size=3,
+            mutation_probability=mp,
+            parenthood_probability=0.7,
+            precision=0.0001,
+            convergence_threshold=0.02,
+            genome_size=14,
+            solution_search_boundaries_predicate=lambda x: (-5 <= x < 0) or (0 < x <= 5)
+        ))
+
+    plot_mutation_probability_and_generations_count_correlation_graph(list(map(lambda r: r[0], results)),
+                                                                      mutation_probabilities)
+
+    plot_mutation_probability_and_best_fitness_correlation_graph(list(map(lambda r: r[2], results)),
+                                                                 mutation_probabilities)
+    for index, result in enumerate(results):
+        print(f"Generation: {index}, generations: {result[0]}, best individual: {result[1]}, fitness: {result[2]}")
