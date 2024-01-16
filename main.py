@@ -195,7 +195,7 @@ def run_genetic_algorithm(population_size,
 
 if __name__ == "__main__":
 
-    mutation_probabilities = np.arange(0.01, 0.21, 0.01)
+    mutation_probabilities = np.arange(0.01, 0.31, 0.01)
     results = []
     for mp in mutation_probabilities:
         results.append(run_genetic_algorithm(
@@ -203,8 +203,8 @@ if __name__ == "__main__":
             tournament_size=3,
             mutation_probability=mp,
             parenthood_probability=0.7,
-            precision=0.0001,
-            convergence_threshold=0.02,
+            precision=0.001,
+            convergence_threshold=0.03,
             genome_size=14,
             solution_search_boundaries_predicate=lambda x: (-5 <= x < 0) or (0 < x <= 5)
         ))
